@@ -10,8 +10,7 @@ from threading import Thread
 from balance import balance
 import json
 from log_back import Log
-import pandas as pd
-
+import csv
 
 class App():
     def __init__(self):
