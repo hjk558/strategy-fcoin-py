@@ -7,6 +7,7 @@ import base64
 import json
 from collections import OrderedDict
 
+
 class Fcoin():
     def __init__(self,base_url = 'https://api.fcoin.com/v2/'):
         self.base_url = base_url

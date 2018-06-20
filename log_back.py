@@ -16,7 +16,7 @@ class Log(object):
         self.logger.setLevel(logging.INFO)
         self.fh = logging.FileHandler(self.path + self.filename)
         self.fh.setLevel(logging.DEBUG)
-        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(threadName)s - %(name)s - %(message)s')
+        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(message)s')
         self.fh.setFormatter(self.formatter)
         self.logger.addHandler(self.fh)
 

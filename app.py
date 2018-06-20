@@ -9,21 +9,23 @@ import config
 from threading import Thread
 from balance import balance
 import json
+from log_back import Log
+import pandas as pd
 
 
-
-class app():
+class App():
     def __init__(self):
         self.fcoin = Fcoin()
         self.fcoin.auth(config.api_key, config.api_secret)
-
+        self.log = Log("coin")
         self.symbol = 'ftusdt'
         self.order_id = None
         self.dic_balance = defaultdict(lambda: None)
         self.time_order = time.time()
         self.oldprice = [self.digits(self.get_ticker(),6)]
-        self.usdt_sxf=0.0
-        self.ft_sxf=0.0
+        self.now_price = 0.0
+        self.type = 0
+        self.fee = 0.0
         self.begin_balance=self.get_blance()
 
     def digits(self, num, digit):
@@ -34,9 +36,9 @@ class app():
 
     def get_ticker(self):
         ticker = self.fcoin.get_market_ticker(self.symbol)
-        now_price = ticker['data']['ticker'][0]
-        print('最新成交价', now_price)
-        return now_price
+        self.now_price = ticker['data']['ticker'][0]
+        self.log.info("new price%s" % self.now_price )
+        return self.now_price
 
     def get_blance(self):
         dic_blance = defaultdict(lambda: None)
@@ -46,19 +48,22 @@ class app():
                 dic_blance[item['currency']] = balance(float(item['available']), float(item['frozen']),float(item['balance']))
         return dic_blance
 
+    def save_csv(self):
+        with open("/data/trade.csv","a+",newline='') as w:
+            writer = csv.writer(w)
+            writer.writerow()
+
     def process(self):
         price = self.digits(self.get_ticker(),6)
-        
         self.oldprice.append(price)
-        
         self.dic_balance = self.get_blance()
 
         ft = self.dic_balance['ft']
-
-        usdt = self.dic_balance['usdt']  
+        usdt = self.dic_balance['usdt']
         
-        print('usdt_now  has ....', usdt.balance, 'ft_now has ...', ft.balance)
+        self.log.info("usdt now has[%s]   ft now has [%s]" % (usdt.balance, ft.balance))
         print('usdt_sxf  has ....', self.usdt_sxf, 'ft_sxf has ...', self.ft_sxf)
+        self.log.info("usdt_sxf has[%s] ft_sxf has [%s]" % (self.usdt_sxf, self.ft_sxf))
         print('usdt_begin  has ....', self.begin_balance['usdt'].balance, 'ft_begin has ...', self.begin_balance['ft'].balance)
         print('usdt_all_now  has ....', usdt.balance+self.usdt_sxf, 'ft_all_now has ...', ft.balance+self.ft_sxf)
 
@@ -66,47 +71,50 @@ class app():
 
         if not order_list or len(order_list) < 2:
             if usdt and abs(price/self.oldprice[len(self.oldprice)-2]-1)<0.02:
-                if price*2>self.oldprice[len(self.oldprice)-2]+self.oldprice[len(self.oldprice)-3]:
+                if price*2 < self.oldprice[len(self.oldprice)-2]+self.oldprice[len(self.oldprice)-3]:
                     amount = self.digits(usdt.available / price * 0.25, 2)
                     if amount > 5:
                         data = self.fcoin.buy(self.symbol, price, amount)
                         if data:
-                            print('buy success',data)
-                            self.ft_sxf += amount*0.001
+                            self.fee = amount*0.001
                             self.order_id = data['data']
                             self.time_order = time.time()
+                            self.type = 1
+                            self.log.info('buy success price---[%s]' % price)
                 else:
-                    if  float(ft.available) * 0.25 > 5:
+                    if float(ft.available) * 0.25 > 5:
                         amount = self.digits(ft.available * 0.25, 2)
                         data = self.fcoin.sell(self.symbol, price, amount)
                         if data:
-                            self.usdt_sxf += amount*price*0.001
+                            self.fee = amount*price*0.001
                             self.time_order = time.time()
                             self.order_id = data['data']
-                            print('sell success')
+                            self.type = 2
+                            self.log.info("sell success price---[%s]" % price)
             else:
                 print('error')
         else:
             print('system busy')
             if len(order_list) >= 1:
-                data=self.fcoin.cancel_order(order_list[len(order_list)-1]['id'])
+                data = self.fcoin.cancel_order(order_list[len(order_list)-1]['id'])
                 print(order_list[len(order_list)-1])
                 if data:
                     if order_list[len(order_list)-1]['side'] == 'buy' and order_list[len(order_list)-1]['symbol'] == 'ftusdt':
-                        self.ft_sxf -= float(order_list[len(order_list)-1]['amount'])*0.001
+                        self.fee = -float(order_list[len(order_list)-1]['amount'])*0.001
                     elif order_list[len(order_list)-1]['side'] == 'sell' and order_list[len(order_list)-1]['symbol'] == 'ftusdt':
-                        self.usdt_sxf -= float(order_list[len(order_list)-1]['amount'])*float(order_list[len(order_list)-1]['price'])*0.001
+                        self.fee = -float(order_list[len(order_list)-1]['amount'])*float(order_list[len(order_list)-1]['price'])*0.001
+                    self.type = 3
         
-        
-
     def loop(self):
         while True:
             try:
                 self.process()
                 print('succes')
+                self.log.info("success")
             except Exception as e:
                 print(e)
-            time.sleep(5)
+                self.log.info(e)
+            time.sleep(4)
 
 
 
