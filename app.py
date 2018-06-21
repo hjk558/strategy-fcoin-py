@@ -1,6 +1,4 @@
 #!-*-coding:utf-8 -*-
-#@TIME    : 2018/5/30/0030 15:18
-#@Author  : linfeng
 import math
 import time
 from fcoin3 import Fcoin
@@ -8,9 +6,9 @@ from collections import defaultdict
 import config
 from threading import Thread
 from balance import balance
-import json
 from log_back import Log
 import csv
+
 
 class App():
     def __init__(self):
@@ -36,7 +34,7 @@ class App():
     def get_ticker(self):
         ticker = self.fcoin.get_market_ticker(self.symbol)
         self.now_price = ticker['data']['ticker'][0]
-        self.log.info("new price%s" % self.now_price )
+        self.log.info("now price%s" % self.now_price )
         return self.now_price
 
     def get_blance(self):
@@ -48,9 +46,15 @@ class App():
         return dic_blance
 
     def save_csv(self,array):
-        with open("/data/trade.csv","a+",newline='') as w:
+        with open("data/trade.csv","a+",newline='') as w:
             writer = csv.writer(w)
             writer.writerow(array)
+
+    def reset_save_attrubute(self):
+        self.now_price = 0.0
+        self.type = 0
+        self.fee = 0.0
+        self.order_id = None
 
     def process(self):
         price = self.digits(self.get_ticker(),6)
@@ -61,12 +65,10 @@ class App():
         usdt = self.dic_balance['usdt']
         
         self.log.info("usdt now has[%s]   ft now has [%s]" % (usdt.balance, ft.balance))
-        print('usdt_sxf  has ....', self.usdt_sxf, 'ft_sxf has ...', self.ft_sxf)
-        self.log.info("usdt_sxf has[%s] ft_sxf has [%s]" % (self.usdt_sxf, self.ft_sxf))
-        print('usdt_begin  has ....', self.begin_balance['usdt'].balance, 'ft_begin has ...', self.begin_balance['ft'].balance)
-        print('usdt_all_now  has ....', usdt.balance+self.usdt_sxf, 'ft_all_now has ...', ft.balance+self.ft_sxf)
 
-        order_list = self.fcoin.list_orders(symbol=self.symbol,states='submitted')['data'] 
+        order_list = self.fcoin.list_orders(symbol=self.symbol,states='submitted')['data']
+        print(order_list)
+        self.log.info("order trading: %s" % order_list)
 
         if not order_list or len(order_list) < 2:
             if usdt and abs(price/self.oldprice[len(self.oldprice)-2]-1)<0.02:
@@ -79,7 +81,7 @@ class App():
                             self.order_id = data['data']
                             self.time_order = time.time()
                             self.type = 1
-                            self.log.info('buy success price---[%s]' % price)
+                            self.log.info('buy success price---[%s] amout--[%s] fee---[%s]' % (price,amount ,self.fee))
                 else:
                     if float(ft.available) * 0.25 > 5:
                         amount = self.digits(ft.available * 0.25, 2)
@@ -89,34 +91,40 @@ class App():
                             self.time_order = time.time()
                             self.order_id = data['data']
                             self.type = 2
-                            self.log.info("sell success price---[%s]" % price)
+                            self.log.info("sell success price---[%s] amout--[%s] fee--[%s]" % (price,amount, self.fee))
+
             else:
-                print('error')
+                print('价格波动过大 %s' % usdt)
+                self.log.info("价格波动过大%s" % usdt)
         else:
             print('system busy')
             if len(order_list) >= 1:
-                data = self.fcoin.cancel_order(order_list[len(order_list)-1]['id'])
-                print(order_list[len(order_list)-1])
+                self.log.info("cancel order {%s}" % order_list[-1])
+                order_id = order_list[-1]['id']
+                data = self.fcoin.cancel_order(order_id)
+                self.log.info("cancel result {%s}" % data)
                 if data:
                     if order_list[len(order_list)-1]['side'] == 'buy' and order_list[len(order_list)-1]['symbol'] == 'ftusdt':
                         self.fee = -float(order_list[len(order_list)-1]['amount'])*0.001
                     elif order_list[len(order_list)-1]['side'] == 'sell' and order_list[len(order_list)-1]['symbol'] == 'ftusdt':
                         self.fee = -float(order_list[len(order_list)-1]['amount'])*float(order_list[len(order_list)-1]['price'])*0.001
                     self.type = 3
+                    self.order_id = order_id
         
     def loop(self):
         while True:
             try:
                 self.process()
-                now_time = time.strftime('%Y-%m-%d %H:%M:%S')
-                array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,now_time]
-                self.save_csv(array)
-                print('succes')
+                array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,time.strftime('%Y-%m-%d %H:%M:%S')]
+                if type != 0:
+                    self.save_csv(array)
                 self.log.info("success")
+                time.sleep(3)
             except Exception as e:
-                print(e)
                 self.log.info(e)
-            time.sleep(4)
+                print(e)
+            finally:
+                self.reset_save_attrubute()
 
 
 
