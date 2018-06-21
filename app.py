@@ -47,10 +47,10 @@ class App():
                 dic_blance[item['currency']] = balance(float(item['available']), float(item['frozen']),float(item['balance']))
         return dic_blance
 
-    def save_csv(self):
+    def save_csv(self,array):
         with open("/data/trade.csv","a+",newline='') as w:
             writer = csv.writer(w)
-            writer.writerow()
+            writer.writerow(array)
 
     def process(self):
         price = self.digits(self.get_ticker(),6)
@@ -108,6 +108,9 @@ class App():
         while True:
             try:
                 self.process()
+                now_time = time.strftime('%Y-%m-%d %H:%M:%S')
+                array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,now_time]
+                self.save_csv(array)
                 print('succes')
                 self.log.info("success")
             except Exception as e:
@@ -118,7 +121,7 @@ class App():
 
 
 if __name__ == '__main__':
-    run = app()
+    run = App()
     thread = Thread(target=run.loop)
     thread.start()
     thread.join()
