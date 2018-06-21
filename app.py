@@ -64,7 +64,7 @@ class App():
         ft = self.dic_balance['ft']
         usdt = self.dic_balance['usdt']
         
-        self.log.info("usdt now has[%s]   ft now has [%s]" % (usdt.balance, ft.balance))
+        self.log.info("usdt has--[%s]   ft has--[%s]" % (usdt.balance, ft.balance))
 
         order_list = self.fcoin.list_orders(symbol=self.symbol,states='submitted')['data']
         print(order_list)
@@ -81,7 +81,7 @@ class App():
                             self.order_id = data['data']
                             self.time_order = time.time()
                             self.type = 1
-                            self.log.info('buy success price---[%s] amout--[%s] fee---[%s]' % (price,amount ,self.fee))
+                            self.log.info('buy success price--[%s] amout--[%s] fee--[%s]' % (price,amount ,self.fee))
                 else:
                     if float(ft.available) * 0.25 > 5:
                         amount = self.digits(ft.available * 0.25, 2)
@@ -91,7 +91,7 @@ class App():
                             self.time_order = time.time()
                             self.order_id = data['data']
                             self.type = 2
-                            self.log.info("sell success price---[%s] amout--[%s] fee--[%s]" % (price,amount, self.fee))
+                            self.log.info("sell success price--[%s] amout--[%s] fee--[%s]" % (price,amount, self.fee))
 
             else:
                 print('价格波动过大 %s' % usdt)
@@ -114,11 +114,14 @@ class App():
     def loop(self):
         while True:
             try:
+                time1 = time.time()
                 self.process()
                 array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,time.strftime('%Y-%m-%d %H:%M:%S')]
                 if type != 0:
                     self.save_csv(array)
-                self.log.info("success")
+                self.log.info("--------success-------")
+                time2 = time.time()
+                self.log.info("app time--%s"% str(time2-time1))
                 time.sleep(3)
             except Exception as e:
                 self.log.info(e)
