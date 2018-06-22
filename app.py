@@ -56,6 +56,20 @@ class App():
         self.fee = 0.0
         self.order_id = None
 
+    def my_process(self):
+
+        ft = self.dic_balance["ft"]
+        usdt = self.dic_balance["usdt"]
+        order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
+
+        if not order_list or len(order_list)<3:
+            data =  self.fcoin.get_market_depth(self.symbol)
+            bids_price = data["data"]["bid"][0]
+            asks_price = data["data"]["asks"][0]
+            bids_price = self.digits(bids_price,6)
+            asks_price = self.digits(asks_price,6)
+            dif_price = asks_price - bids_price
+
     def process(self):
         price = self.digits(self.get_ticker(),6)
         self.oldprice.append(price)
@@ -63,7 +77,7 @@ class App():
 
         ft = self.dic_balance['ft']
         usdt = self.dic_balance['usdt']
-        
+
         self.log.info("usdt has--[%s]   ft has--[%s]" % (usdt.balance, ft.balance))
 
         order_list = self.fcoin.list_orders(symbol=self.symbol,states='submitted')['data']
@@ -110,14 +124,14 @@ class App():
                         self.fee = -float(order_list[len(order_list)-1]['amount'])*float(order_list[len(order_list)-1]['price'])*0.001
                     self.type = 3
                     self.order_id = order_id
-        
+
     def loop(self):
         while True:
             try:
                 time1 = time.time()
                 self.process()
                 array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,time.strftime('%Y-%m-%d %H:%M:%S')]
-                if type != 0:
+                if self.type != 0:
                     self.save_csv(array)
                 self.log.info("--------success-------")
                 time2 = time.time()
