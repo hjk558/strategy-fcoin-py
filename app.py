@@ -73,7 +73,7 @@ class App():
             elif price < self.oldprice and self.fall_rise > -6:
                 self.fall_rise = self.fall_rise - 1
             print("跌涨标志----", self.fall_rise)
-        if 0.008 <= new_old_price < 1:
+        if 0.008 <= new_old_price < 0.4:
 
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
             print("size",len(order_list))
@@ -110,7 +110,7 @@ class App():
                     print("buy success")
             else:
                 self.count_flag = self.count_flag+1
-                time.sleep(2)
+                time.sleep(4)
                 print("sleep end")
                 if len(order_list) >= 1 and self.count_flag >2:
                     self.log.info("cancel order {%s}" % order_list[-1])
