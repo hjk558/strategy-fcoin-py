@@ -67,10 +67,11 @@ class App():
         print("new price --",price)
         print("old price --",self.oldprice)
         print("price波动百分比----",new_old_price)
-        if price > self.oldprice:
-            self.fall_rise = self.fall_rise+1
-        elif price < self.oldprice:
-            self.fall_rise = self.fall_rise -1
+        if price > self.oldprice and self.fall_rise < 6:
+            self.fall_rise = self.fall_rise + 1
+        elif price < self.oldprice and self.fall_rise > -6:
+            self.fall_rise = self.fall_rise - 1
+        print("跌涨标志----", self.fall_rise)
 
         if new_old_price < 1:
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
@@ -108,9 +109,9 @@ class App():
                     print("buy success")
             else:
                 self.count_flag = self.count_flag+1
-                time.sleep(10)
+                time.sleep(4)
                 print("sleep end")
-                if len(order_list) >= 1 and self.count_flag >3:
+                if len(order_list) >= 1 and self.count_flag >5:
                     self.log.info("cancel order {%s}" % order_list[-1])
                     print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
@@ -136,7 +137,7 @@ class App():
         self.log.info("order trading: %s" % order_list)
 
         if not order_list or len(order_list) < 2:
-            if usdt and abs(price/self.oldprice[len(self.oldprice)-2]-1)<0.02:
+            if usdt and abs(price/self.oldprice[len(self.oldprice)-2]-1) < 0.02:
                 if price*2 < self.oldprice[len(self.oldprice)-2]+self.oldprice[len(self.oldprice)-3]:
                     amount = self.digits(usdt.available / price * 0.25, 2)
                     if amount > 5:
