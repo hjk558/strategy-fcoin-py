@@ -67,13 +67,13 @@ class App():
         print("new price --",price)
         print("old price --",self.oldprice)
         print("price波动百分比----",new_old_price)
-        if new_old_price > 0.005:
+
+        if 0.001< new_old_price < 1:
             if price > self.oldprice and self.fall_rise < 6:
                 self.fall_rise = self.fall_rise + 1
             elif price < self.oldprice and self.fall_rise > -6:
                 self.fall_rise = self.fall_rise - 1
             print("跌涨标志----", self.fall_rise)
-        if 0.008 <= new_old_price < 1:
 
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
             print("size",len(order_list))
@@ -112,7 +112,7 @@ class App():
                 self.count_flag = self.count_flag+1
                 time.sleep(2)
                 print("sleep end")
-                if len(order_list) >= 1 and self.count_flag >2:
+                if len(order_list) >= 1:
                     self.log.info("cancel order {%s}" % order_list[-1])
                     print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
@@ -121,7 +121,6 @@ class App():
                     self.log.info("cancel result {%s}" % data)
         else:
             print("##########当前波动无效###########")
-
         self.oldprice = price
 
 
@@ -201,8 +200,10 @@ class App():
 
 
 if __name__ == '__main__':
-    run = App()
-    thread = Thread(target=run.loop)
-    thread.start()
-    thread.join()
-    print('done')
+    # run = App()
+    # thread = Thread(target=run.loop)
+    # thread.start()
+    # thread.join()
+    # print('done')
+    print(0.015793061>0.01)
+
