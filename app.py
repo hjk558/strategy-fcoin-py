@@ -14,16 +14,17 @@ class App():
     def __init__(self):
         self.fcoin = Fcoin()
         self.fcoin.auth(config.api_key, config.api_secret)
-        self.log = Log("coin")
+        self.log = Log("")
         self.symbol = 'ftusdt'
         self.order_id = None
         self.dic_balance = defaultdict(lambda: None)
         self.time_order = time.time()
-        self.oldprice = [self.digits(self.get_ticker(),6)]
+        self.oldprice = self.digits(self.get_ticker(),6)
         self.now_price = 0.0
         self.type = 0
         self.fee = 0.0
-        self.begin_balance=self.get_blance()
+        self.count_flag = 0
+        self.fall_rise = 0
 
     def digits(self, num, digit):
         site = pow(10, digit)
@@ -57,24 +58,74 @@ class App():
         self.order_id = None
 
     def my_process(self):
-
+        self.dic_balance = self.get_blance()
         ft = self.dic_balance["ft"]
         usdt = self.dic_balance["usdt"]
-        order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
+        print("usdt ---",usdt.available,"ft----",ft.available)
+        price = self.digits(self.get_ticker(),6)
+        new_old_price = abs(price /self.oldprice - 1)*100
+        print("new price --",price)
+        print("old price --",self.oldprice)
+        print("price波动百分比----",new_old_price)
+        if price > self.oldprice:
+            self.fall_rise = self.fall_rise+1
+        elif price < self.oldprice:
+            self.fall_rise = self.fall_rise -1
 
-        if not order_list or len(order_list)<3:
-            data =  self.fcoin.get_market_depth(self.symbol)
-            bids_price = data["data"]["bid"][0]
-            asks_price = data["data"]["asks"][0]
-            bids_price = self.digits(bids_price,6)
-            asks_price = self.digits(asks_price,6)
-            dif_price = asks_price - bids_price
+        if new_old_price < 1:
+            order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
+            print("size",len(order_list))
+            if not order_list or len(order_list)<3:
+                self.count_flag = 0
+                data =  self.fcoin.get_market_depth("L20",self.symbol)
+                bids_price = data["data"]["bids"][0]
+                asks_price = data["data"]["asks"][0]
+                dif_price = (asks_price * 0.001 + bids_price * 0.001)/2
+                if self.fall_rise > 3 or (price > self.oldprice and new_old_price > 0.4):
+                    print("涨--------------")
+                    bids_dif = bids_price - dif_price * 0.6
+                    asks_dif = asks_price + dif_price * 1.5
+                elif self.fall_rise < -3 or (price < self.oldprice and new_old_price > 0.4):
+                    print("跌---------------")
+                    bids_dif = bids_price - dif_price * 1.5
+                    asks_dif = asks_price + dif_price * 0.6
+                else:
+                    print("平衡-------------")
+                    bids_dif = bids_price - dif_price
+                    asks_dif = asks_price + dif_price
+
+                bids_price_b = self.digits(bids_dif,6)
+                print("bids_price",bids_price_b)
+                asks_price_a = self.digits(asks_dif,6)
+                print("asks_price",asks_price_a)
+                print("交易差------",(asks_price_a-bids_price_b)*1000)
+
+                asks_data = self.fcoin.sell(self.symbol,asks_price_a,6)
+                if asks_data:
+                    print("sell success")
+                bids_data = self.fcoin.buy(self.symbol,bids_price_b,6)
+                if bids_data:
+                    print("buy success")
+            else:
+                self.count_flag = self.count_flag+1
+                time.sleep(10)
+                print("sleep end")
+                if len(order_list) >= 1 and self.count_flag >3:
+                    self.log.info("cancel order {%s}" % order_list[-1])
+                    print("****************cancel order ***********")
+                    order_id = order_list[-1]['id']
+                    self.count_flag = 0
+                    data = self.fcoin.cancel_order(order_id)
+                    self.log.info("cancel result {%s}" % data)
+        else:
+            print("##########当前波动大于1.4%###########")
+        self.oldprice = price
+
 
     def process(self):
         price = self.digits(self.get_ticker(),6)
         self.oldprice.append(price)
         self.dic_balance = self.get_blance()
-
         ft = self.dic_balance['ft']
         usdt = self.dic_balance['usdt']
 
@@ -128,20 +179,21 @@ class App():
     def loop(self):
         while True:
             try:
-                time1 = time.time()
-                self.process()
-                array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,time.strftime('%Y-%m-%d %H:%M:%S')]
-                if self.type != 0:
-                    self.save_csv(array)
-                self.log.info("--------success-------")
-                time2 = time.time()
-                self.log.info("app time--%s"% str(time2-time1))
-                time.sleep(3)
+                self.my_process()
+                # time1 = time.time()
+                # self.process()
+                # array = [self.order_id,self.now_price,self.type,self.fee,self.symbol,time.strftime('%Y-%m-%d %H:%M:%S')]
+                # if self.type != 0:
+                #     self.save_csv(array)
+                # self.log.info("--------success-------")
+                # time2 = time.time()
+                # self.log.info("app time--%s"% str(time2-time1))
+                time.sleep(5)
             except Exception as e:
                 self.log.info(e)
                 print(e)
-            finally:
-                self.reset_save_attrubute()
+            # finally:
+            #     self.reset_save_attrubute()
 
 
 
