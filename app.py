@@ -8,8 +8,7 @@ from threading import Thread
 from balance import balance
 from log_back import Log
 import csv
-
-
+from concurrent.futures import ThreadPoolExecutor
 class App():
     def __init__(self):
         self.fcoin = Fcoin()
@@ -27,6 +26,7 @@ class App():
         self.fall_rise = 0
         self.buy_price =0.0
         self.sell_price = 0.0
+        self.executor = ThreadPoolExecutor(max_workers=4)
 
     def digits(self, num, digit):
         site = pow(10, digit)
@@ -78,7 +78,6 @@ class App():
                 self.fall_rise = self.fall_rise - 1
         print("跌涨标志----", self.fall_rise)
         if 0.008 <= new_old_price < 0.4:
-
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
             print("size",len(order_list))
             if not order_list or len(order_list) < 5:
@@ -103,21 +102,18 @@ class App():
                 print("asks_price",asks_price_a)
                 print("交易差------",(asks_price_a-bids_price_b)*1000)
 
-                if abs(self.count_flag)%2 != 0:
-                    bids_data = self.fcoin.buy(self.symbol,bids_price_b,6)
-                    asks_data = self.fcoin.sell(self.symbol,asks_price_a,6)
-                else:
-                    asks_data = self.fcoin.sell(self.symbol,asks_price_a,6)
-                    bids_data = self.fcoin.buy(self.symbol,bids_price_b,6)
-                if asks_data:
+                buy_task = self.executor.submit(self.fcoin.buy, self.symbol, bids_price_b, 6)
+                sell_task = self.executor.submit(self.fcoin.sell, self.symbol, asks_price_a, 6)
+                time.sleep(1)
+                if buy_task.done():
                     print("sell success")
-                if bids_data:
+                if sell_task.done():
                     print("buy success")
             else:
                 self.count_flag = self.count_flag+1
                 time.sleep(3)
                 print("sleep end")
-                if len(order_list) >= 1 and self.count_flag >1:
+                if len(order_list) >= 1 and self.count_flag >2:
                     self.log.info("cancel order {%s}" % order_list[-1])
                     print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
@@ -196,7 +192,7 @@ class App():
                 # self.log.info("--------success-------")
                 # time2 = time.time()
                 # self.log.info("app time--%s"% str(time2-time1))
-                time.sleep(5)
+                time.sleep(4)
             except Exception as e:
                 self.log.info(e)
                 print(e)
