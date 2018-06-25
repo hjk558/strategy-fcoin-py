@@ -69,14 +69,18 @@ class App():
         price = self.digits(self.get_ticker(),6)
         new_old_price = abs(price/self.oldprice - 1)*100
         print("new price --",price)
+        self.log.info("new price---%s"% price)
+        self.log.info("old price---%s"% self.oldprice)
         print("old price --",self.oldprice)
         print("price波动百分比----",new_old_price)
+        self.log.info("price波动百分比---%s"% new_old_price)
         if new_old_price > 0.005:
             if price > self.oldprice and self.fall_rise < 6:
                 self.fall_rise = self.fall_rise + 1
             elif price < self.oldprice and self.fall_rise > -6:
                 self.fall_rise = self.fall_rise - 1
         print("跌涨标志----", self.fall_rise)
+        self.log.info("跌涨标志---%s"% self.fall_rise)
         if 0.008 <= new_old_price < 0.4:
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
             print("size",len(order_list))
@@ -85,35 +89,43 @@ class App():
                 dif_price = (self.sell_price * 0.001 + self.buy_price * 0.001)/2
                 if self.fall_rise > 3 or (price > self.oldprice and new_old_price > 0.4):
                     print("涨--------------")
+                    self.log.info("涨----------")
                     bids_dif = self.buy_price - dif_price * 0.6
                     asks_dif = self.sell_price + dif_price * 1.5
                 elif self.fall_rise < -3 or (price < self.oldprice and new_old_price > 0.4):
                     print("跌---------------")
+                    self.log.info("跌--------------")
                     bids_dif = self.buy_price - dif_price * 1.5
                     asks_dif = self.sell_price + dif_price * 0.6
                 else:
                     print("平衡-------------")
+                    self.log.info("平衡-----------------")
                     bids_dif = self.buy_price - dif_price
                     asks_dif = self.sell_price + dif_price
 
                 bids_price_b = self.digits(bids_dif,6)
                 print("bids_price",bids_price_b)
+                self.log.info("bids_price----%s"% bids_price_b)
                 asks_price_a = self.digits(asks_dif,6)
                 print("asks_price",asks_price_a)
+                self.log.info("asks_price----%s"% asks_price_a)
                 print("交易差------",(asks_price_a-bids_price_b)*1000)
+                self.log.info("交易差------%s"%((asks_price_a-bids_price_b)*1000))
 
                 buy_task = self.executor.submit(self.fcoin.buy, self.symbol, bids_price_b, 6)
                 sell_task = self.executor.submit(self.fcoin.sell, self.symbol, asks_price_a, 6)
                 time.sleep(1)
                 if buy_task.done():
+                    self.log.info("sell success")
                     print("sell success")
                 if sell_task.done():
+                    self.log.info("buy success")
                     print("buy success")
             else:
                 self.count_flag = self.count_flag+1
                 time.sleep(3)
                 print("sleep end")
-                if len(order_list) >= 1 and self.count_flag >2:
+                if len(order_list) >= 1 and self.count_flag >3:
                     self.log.info("cancel order {%s}" % order_list[-1])
                     print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
@@ -122,6 +134,7 @@ class App():
                     self.log.info("cancel result {%s}" % data)
         else:
             print("##########当前波动无效###########")
+            self.log.info("##########当前波动无效###########")
 
         self.oldprice = price
 
@@ -192,7 +205,7 @@ class App():
                 # self.log.info("--------success-------")
                 # time2 = time.time()
                 # self.log.info("app time--%s"% str(time2-time1))
-                time.sleep(4)
+                time.sleep(5)
             except Exception as e:
                 self.log.info(e)
                 print(e)
