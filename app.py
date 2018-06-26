@@ -37,7 +37,6 @@ class App():
     def get_ticker(self):
         ticker = self.fcoin.get_market_ticker(self.symbol)['data']['ticker']
         self.now_price = ticker[0]
-        self.log.info("now price%s" % self.now_price)
         self.buy_price = ticker[2]
         self.sell_price = ticker[4]
         return self.now_price
@@ -66,6 +65,7 @@ class App():
         ft = self.dic_balance["ft"]
         usdt = self.dic_balance["usdt"]
         print("usdt ---",usdt.available,"ft----",ft.available)
+        self.log.info("usdt has---%s ft has---%s"% (usdt.vailable, ft.available))
         price = self.digits(self.get_ticker(),6)
         new_old_price = abs(price/self.oldprice - 1)*100
         print("new price --",price)
@@ -124,14 +124,15 @@ class App():
                     print("buy success")
             else:
                 self.count_flag = self.count_flag+1
+                print("sleep begin")
+                self.log.info("sleep begin")
                 time.sleep(3)
-                print("sleep end")
                 if len(order_list) >= 1 and self.count_flag >3:
-                    print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
                     self.count_flag = 0
                     data = self.fcoin.cancel_order(order_id)
-                    self.log.info("cancel result {%s}" % data)
+                    print("*******cancel result",result)
+                    self.log.info("*******cancel result {%s}" % data)
         else:
             print("##########当前波动无效###########")
             self.log.info("##########当前波动无效###########")
