@@ -69,11 +69,11 @@ class App():
         price = self.digits(self.get_ticker(),6)
         new_old_price = abs(price/self.oldprice - 1)*100
         print("new price --",price)
-        self.log.info("new price---%s"% price)
-        self.log.info("old price---%s"% self.oldprice)
         print("old price --",self.oldprice)
         print("price波动百分比----",new_old_price)
-        self.log.info("price波动百分比---%s"% new_old_price)
+        self.log.info("new price--%s" % price)
+        self.log.info("old price--%s" % self.oldprice)
+        self.log.info("price波动百分比%s" % new_old_price)
         if new_old_price > 0.005:
             if price > self.oldprice and self.fall_rise < 6:
                 self.fall_rise = self.fall_rise + 1
@@ -84,6 +84,7 @@ class App():
         if 0.008 <= new_old_price < 0.4:
             order_list = self.fcoin.list_orders(symbol=self.symbol,states="submitted")["data"]
             print("size",len(order_list))
+            self.log.info("size--%s"% len(order_list))
             if not order_list or len(order_list) < 5:
                 self.count_flag = 0
                 dif_price = (self.sell_price * 0.001 + self.buy_price * 0.001)/2
@@ -126,7 +127,6 @@ class App():
                 time.sleep(3)
                 print("sleep end")
                 if len(order_list) >= 1 and self.count_flag >3:
-                    self.log.info("cancel order {%s}" % order_list[-1])
                     print("****************cancel order ***********")
                     order_id = order_list[-1]['id']
                     self.count_flag = 0
