@@ -65,7 +65,7 @@ class App():
         ft = self.dic_balance["ft"]
         usdt = self.dic_balance["usdt"]
         print("usdt ---",usdt.available,"ft----",ft.available)
-        self.log.info("usdt has---%s ft has---%s"% (usdt.vailable, ft.available))
+        self.log.info("usdt has---%s ft has---%s"% (usdt.available, ft.available))
         price = self.digits(self.get_ticker(),6)
         new_old_price = abs(price/self.oldprice - 1)*100
         print("new price --",price)
