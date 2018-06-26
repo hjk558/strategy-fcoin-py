@@ -88,12 +88,12 @@ class App():
             if not order_list or len(order_list) < 5:
                 self.count_flag = 0
                 dif_price = (self.sell_price * 0.001 + self.buy_price * 0.001)/2
-                if self.fall_rise > 3 or (price > self.oldprice and new_old_price > 0.08):
+                if (price > self.oldprice and new_old_price > 0.08) or self.fall_rise > 3:
                     print("涨--------------")
                     self.log.info("涨----------")
                     bids_dif = self.buy_price - dif_price * 0.6
                     asks_dif = self.sell_price + dif_price * 1.5
-                elif self.fall_rise < -3 or (price < self.oldprice and new_old_price > 0.08):
+                elif (price < self.oldprice and new_old_price > 0.08) or self.fall_rise < -3:
                     print("跌---------------")
                     self.log.info("跌--------------")
                     bids_dif = self.buy_price - dif_price * 1.5
